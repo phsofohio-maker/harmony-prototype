@@ -3,24 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Patient Dashboard</title>
+  <title>Parrish Health Systems | Care Dashboard</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   
   <style>
     :root {
-      --primary: #4f46e5; /* Modern Indigo */
-      --primary-hover: #4338ca;
-      --bg-surface: #f3f4f6;
-      --card-bg: #ffffff;
+      /* BRANDING UPDATE: Green Theme */
+      --primary: #16a34a; /* Modern Medical Green */
+      --primary-hover: #15803d;
+      --primary-light: #dcfce7;
+      
+      --sidebar-width: 280px; /* Widened slightly for full title */
       --text-dark: #111827;
       --text-muted: #6b7280;
-      --border-color: #e5e7eb;
+      --bg-surface: #f9fafb;
     }
 
     body {
@@ -30,547 +30,430 @@
       overflow-x: hidden;
     }
 
-    /* --- Animations --- */
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
-    
-    .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-    .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-
-    /* --- Auth Screen --- */
-    #authSection {
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%);
-    }
-
-    .pin-card {
-      background: rgba(255, 255, 255, 0.9);
+    /* --- Secure Entry --- */
+    #authOverlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.95);
       backdrop-filter: blur(10px);
-      border: 1px solid white;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      border-radius: 1.5rem;
-      padding: 3rem 2rem;
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
     }
-
-    .pin-input {
-      font-size: 2rem;
-      letter-spacing: 0.5rem;
-      text-align: center;
-      border: 2px solid var(--border-color);
-      border-radius: 1rem;
-      padding: 1rem;
-      transition: all 0.2s;
-      background: #f9fafb;
-    }
+    .pin-box { width: 340px; text-align: center; }
+    .pin-dots { font-size: 2rem; letter-spacing: 1rem; border: none; background: transparent; text-align: center; width: 100%; outline: none; }
     
-    .pin-input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-      outline: none;
-    }
-
-    /* --- Dashboard UI --- */
-    .dashboard-container {
-      display: none; /* Hidden by default */
-      padding-bottom: 3rem;
-    }
-
-    .modern-card {
-      background: var(--card-bg);
-      border: none;
-      border-radius: 1rem;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .scorecard {
-      padding: 1.5rem;
-      height: 100%;
-      position: relative;
-      overflow: hidden;
-    }
+    /* --- Layout --- */
+    .app-container { display: flex; min-height: 100vh; display: none; /* Hidden until PIN */ }
     
-    .scorecard:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-    .scorecard-value { font-size: 2.25rem; font-weight: 700; color: var(--primary); line-height: 1; margin-bottom: 0.5rem; }
-    .scorecard-label { font-size: 0.875rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em; }
-    
-    /* Table Styling */
-    .table-container {
+    .sidebar {
+      width: var(--sidebar-width);
       background: white;
-      border-radius: 1rem;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-      overflow: hidden;
-    }
-
-    .table-header {
+      border-right: 1px solid #e5e7eb;
+      position: fixed; height: 100vh;
       padding: 1.5rem;
-      border-bottom: 1px solid var(--border-color);
-      background: white;
+      display: flex; flex-direction: column;
     }
 
-    .table th {
-      font-weight: 600;
+    .main-content {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 2rem;
+    }
+
+    /* --- Navigation --- */
+    .nav-item {
+      display: flex; align-items: center;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      border-radius: 0.5rem;
       color: var(--text-muted);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      background-color: #f9fafb;
-      border-bottom: 1px solid var(--border-color);
-      padding: 1rem;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+      cursor: pointer;
     }
-    
-    .table td { padding: 1rem; vertical-align: middle; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
-    .table tbody tr:last-child td { border-bottom: none; }
-    .table tbody tr:hover { background-color: #f9fafb; }
+    .nav-item:hover { background: var(--bg-surface); color: var(--primary); }
+    .nav-item.active { background: var(--primary-light); color: var(--primary); }
+    .nav-item i { margin-right: 0.75rem; font-size: 1.1rem; }
 
-    /* Badges & Buttons */
+    /* --- Components --- */
+    .stat-card {
+      background: white; border-radius: 1rem; padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid #e5e7eb;
+    }
+    .stat-val { font-size: 2rem; font-weight: 700; color: var(--primary); line-height: 1.2; }
+    .stat-label { font-size: 0.875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Tables */
+    .table-card { background: white; border-radius: 1rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; }
+    .table th { background: #f9fafb; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; padding: 1rem; }
+    .table td { vertical-align: middle; padding: 1rem; font-size: 0.9rem; }
+    
+    /* Status Badges */
     .badge-soft { padding: 0.35em 0.8em; border-radius: 2rem; font-weight: 600; font-size: 0.75rem; }
-    .badge-upcoming { background: #eff6ff; color: #1d4ed8; }
-    .badge-pastdue { background: #fef2f2; color: #b91c1c; }
-    .badge-neutral { background: #f3f4f6; color: #374151; }
+    .bg-green-soft { background: #dcfce7; color: #15803d; }
+    .bg-red-soft { background: #fee2e2; color: #991b1b; }
+    .bg-yellow-soft { background: #fef3c7; color: #92400e; }
+    .bg-neutral-soft { background: #f3f4f6; color: #374151; }
 
-    .btn-primary { background-color: var(--primary); border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; }
-    .btn-primary:hover { background-color: var(--primary-hover); }
-    
-    .btn-toggle-group { background: #f3f4f6; padding: 0.25rem; border-radius: 0.75rem; display: inline-flex; }
-    .btn-toggle { border: none; background: transparent; color: var(--text-muted); padding: 0.375rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; }
-    .btn-toggle.active { background: white; color: var(--primary); shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .btn-toggle:hover:not(.active) { color: var(--text-dark); }
+    /* Buttons */
+    .btn-primary { background-color: var(--primary); border-color: var(--primary); }
+    .btn-primary:hover { background-color: var(--primary-hover); border-color: var(--primary-hover); }
+    .btn-outline-secondary.active { background-color: var(--primary); border-color: var(--primary); color: white; }
 
-    .search-input { border: 1px solid var(--border-color); border-radius: 0.5rem; padding-left: 2.5rem; background-color: #fff; }
-    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+    /* View Sections */
+    .view-section { display: none; animation: fadeIn 0.3s ease; }
+    .view-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .loading-spinner { width: 3rem; height: 3rem; border: 4px solid #e5e7eb; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    /* HUV Checkbox */
+    .huv-check { width: 1.2rem; height: 1.2rem; cursor: pointer; border-radius: 4px; accent-color: var(--primary); }
   </style>
 </head>
 <body>
 
-  <div id="authSection">
-    <div class="pin-card fade-in">
+  <div id="authOverlay">
+    <div class="pin-box">
       <div class="mb-4">
-        <div class="bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 60px; height: 60px;">
-          <i class="bi bi-shield-lock-fill fs-3"></i>
-        </div>
-        <h3 class="fw-bold mb-1">Welcome Back</h3>
-        <p class="text-muted">Enter access PIN to continue</p>
+        <img src="https://parrishhealthsystems.org/wp-content/uploads/2025/04/Logo_Thumbnail.png" alt="Parrish Health Systems" style="height: 80px; width: auto;">
       </div>
-      <div class="mb-4">
-        <input type="password" id="pinInput" class="form-control pin-input" maxlength="4" placeholder="••••" inputmode="numeric">
-        <div id="pinError" class="text-danger mt-2 small" style="display:none; opacity:0; transition: opacity 0.3s;">
-          <i class="bi bi-exclamation-circle me-1"></i> Incorrect PIN
-        </div>
-      </div>
-      <button class="btn btn-primary w-100 py-2 rounded-3 fw-semibold" onclick="validatePin()">Access Dashboard</button>
+      <h3 class="fw-bold mb-1">Parrish Health Systems</h3>
+      <p class="text-muted mb-4">Secure Dashboard Access</p>
+      
+      <input type="password" id="pinInput" class="form-control text-center fs-4 letter-spacing-2" placeholder="Enter PIN" maxlength="4" style="letter-spacing: 0.5em;">
+      <div id="pinError" class="text-danger mt-3 small" style="display:none">Incorrect PIN</div>
     </div>
   </div>
 
-  <div id="dashboardSection" class="container-fluid dashboard-container px-4">
+  <div class="app-container" id="app">
     
-    <div class="d-flex justify-content-between align-items-center py-4 mb-3">
-      <div>
-        <h4 class="fw-bold mb-0">Patient Dashboard</h4>
-        <span class="text-muted small">Overview & Recertification Tracking</span>
-      </div>
-      <div class="d-flex align-items-center gap-3">
-        <div class="text-end d-none d-sm-block">
-          <div class="fw-semibold" id="currentDate"></div>
-          <div class="text-muted small" style="font-size: 0.75rem;">Admin View</div>
+    <aside class="sidebar">
+      <div class="d-flex align-items-center mb-5 px-2">
+        <img src="https://parrishhealthsystems.org/wp-content/uploads/2025/04/Logo_Thumbnail.png" alt="Logo" class="me-3" style="height: 40px; width: auto;">
+        <div style="line-height: 1.2;">
+          <h6 class="fw-bold m-0" style="white-space: nowrap;">Parrish Health Systems</h6>
+          <span class="text-muted" style="font-size:0.75rem">Care Platform</span>
         </div>
-        <button class="btn btn-light border rounded-circle" onclick="location.reload()" title="Logout">
-          <i class="bi bi-box-arrow-right text-muted"></i>
-        </button>
       </div>
-    </div>
 
-    <div class="row g-2 mb-4 align-items-center">
-      <div class="col-auto">
-        <select id="filterRange" class="form-select form-select-sm border-0 shadow-sm" style="min-width: 140px;">
-          <option value="all">All Time</option>
-          <option value="ytd">Year to Date</option>
-          <option value="mtd">Month to Date</option>
-          <option value="7">Last 7 Days</option>
-          <option value="14">Last 14 Days</option>
-          <option value="30">Last 30 Days</option>
-        </select>
-      </div>
-      <div class="col-auto">
-        <select id="filterYear" class="form-select form-select-sm border-0 shadow-sm" style="min-width: 100px;">
-          <option value="all">All Years</option>
-        </select>
-      </div>
-      <div class="col-auto ms-auto">
-        <button class="btn btn-primary btn-sm px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#patientModal" onclick="openAddModal()">
-          <i class="bi bi-plus-lg me-1"></i>Add Patient
-        </button>
-      </div>
-    </div>
+      <nav>
+        <div class="nav-item active" onclick="switchView('dashboard')">
+          <i class="bi bi-grid-1x2"></i> Overview
+        </div>
+        <div class="nav-item" onclick="switchView('cti')">
+          <i class="bi bi-file-medical"></i> Certifications (CTI)
+        </div>
+        <div class="nav-item" onclick="switchView('huv')">
+          <i class="bi bi-calendar-check"></i> HOPE Visits (HUV)
+        </div>
+      </nav>
 
-    <div class="row g-4 mb-4">
-      <div class="col-12 col-md-3">
-        <div class="modern-card scorecard">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <div class="scorecard-value" id="totalPatients">-</div>
-              <div class="scorecard-label">Total Active Patients</div>
+      <div class="mt-auto">
+        <div class="p-3 bg-light rounded-3">
+          <small class="text-muted d-block mb-1">Current User</small>
+          <div class="fw-bold">Administrator</div>
+          <button class="btn btn-sm btn-outline-secondary w-100 mt-2" onclick="location.reload()">Lock System</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0" id="pageTitle">Overview</h4>
+        <div class="text-end">
+          <span class="badge bg-light text-dark border"><i class="bi bi-clock me-1"></i> <span id="currentDate"></span></span>
+        </div>
+      </div>
+
+      <div id="view-dashboard" class="view-section active">
+        <div class="row g-4 mb-4">
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-val" id="statTotal">-</div>
+              <div class="stat-label">Total Patients</div>
             </div>
-            <div class="bg-primary bg-opacity-10 p-2 rounded-3 text-primary">
-              <i class="bi bi-people-fill fs-5"></i>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-val text-warning" id="statRecerts">-</div>
+              <div class="stat-label">Upcoming Recerts</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-val text-danger" id="statHuv">-</div>
+              <div class="stat-label">Action Needed (HUV)</div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="col-12 col-md-3">
-        <div class="modern-card scorecard">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <div class="scorecard-value" id="upcomingRecerts">-</div>
-              <div class="scorecard-label">Upcoming Recerts</div>
-            </div>
-            <div class="bg-warning bg-opacity-10 p-2 rounded-3 text-warning">
-              <i class="bi bi-clock-history fs-5"></i>
-            </div>
+
+        <div class="card border-0 shadow-sm p-5 text-center bg-white rounded-4">
+          <div class="mb-3">
+             <img src="https://parrishhealthsystems.org/wp-content/uploads/2025/04/Logo_Thumbnail.png" style="height: 60px; opacity: 0.8;">
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="table-container">
-      <div class="table-header d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <div class="btn-toggle-group">
-          <button type="button" class="btn-toggle active" id="btnUpcoming" onclick="setView('upcoming')">Upcoming</button>
-          <button type="button" class="btn-toggle" id="btnPastDue" onclick="setView('pastdue')">Past Due</button>
-        </div>
-        
-        <div class="position-relative">
-          <i class="bi bi-search position-absolute text-muted" style="left:12px; top:50%; transform:translateY(-50%)"></i>
-          <input type="text" id="searchInput" class="form-control form-control-sm search-input" placeholder="Search by name..." style="width: 240px" oninput="filterPatients()">
+          <h5>Welcome to Parrish Health Systems</h5>
+          <p class="text-muted">Select "Certifications" or "HOPE Visits" from the sidebar to manage patient care.</p>
         </div>
       </div>
 
-      <div class="card-body p-0">
-        <div id="loadingState" class="d-flex justify-content-center align-items-center py-5">
-          <div class="loading-spinner"></div>
+      <div id="view-cti" class="view-section">
+        <div class="d-flex justify-content-between mb-3">
+            <div class="btn-group">
+                <button class="btn btn-outline-secondary active" id="btnCtiAll" onclick="filterCti('all')">All</button>
+                <button class="btn btn-outline-secondary" id="btnCtiUpcoming" onclick="filterCti('upcoming')">Upcoming</button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openAddModal()">
+                <i class="bi bi-plus-lg me-1"></i> Add Patient
+            </button>
         </div>
-        
-        <div id="tableContainer" class="table-responsive" style="display:none; max-height: 500px;">
+        <div class="table-card">
           <table class="table mb-0">
-            <thead class="sticky-top">
+            <thead>
               <tr>
-                <th>Patient Name</th>
-                <th>Admission</th>
+                <th>Patient</th>
+                <th>Admission Date</th>
                 <th>Current Period</th>
-                <th>Recertification</th>
+                <th>Recertification Due</th>
                 <th>Status</th>
-                <th style="width:80px">Edit</th>
               </tr>
             </thead>
-            <tbody id="patientTableBody"></tbody>
+            <tbody id="ctiTableBody">
+                <tr><td colspan="5" class="text-center py-4">Loading CTI Data...</td></tr>
+            </tbody>
           </table>
         </div>
+      </div>
 
-        <div id="emptyState" class="text-center py-5 text-muted" style="display:none">
-          <div class="bg-light d-inline-flex rounded-circle p-3 mb-3">
-            <i class="bi bi-inbox fs-2 text-secondary"></i>
-          </div>
-          <p class="mb-0 fw-medium">No patients found</p>
-          <small>Adjust filters or add a new patient</small>
+      <div id="view-huv" class="view-section">
+        <div class="alert alert-light border border-success text-success mb-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>HOPE Protocol:</strong> HUV1 (Days 6-15) • HUV2 (Days 16-30)
+        </div>
+        <div class="table-card">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Patient</th>
+                <th>Start of Care</th>
+                <th>HUV 1 Window</th>
+                <th>Status</th>
+                <th>HUV 2 Window</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="huvTableBody">
+                <tr><td colspan="6" class="text-center py-4">Loading HUV Data...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
+
+    </main>
   </div>
 
   <div class="modal fade" id="patientModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg rounded-4">
-        <div class="modal-header border-bottom-0 pb-0">
-          <h5 class="modal-title fw-bold" id="modalTitle">Add Patient</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Patient</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="newPatientName" class="form-control mb-3" placeholder="Patient Name">
+                <input type="date" id="newPatientDate" class="form-control mb-3">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" onclick="savePatient()">Save Record</button>
+            </div>
         </div>
-        <div class="modal-body pt-4">
-          <input type="hidden" id="editRow">
-          <div class="mb-3">
-            <label class="form-label small text-muted fw-bold text-uppercase">Patient Name</label>
-            <input type="text" id="patientName" class="form-control bg-light border-0 py-2" placeholder="Ex: John Doe" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label small text-muted fw-bold text-uppercase">Admission Date</label>
-            <input type="date" id="admissionDate" class="form-control bg-light border-0 py-2" required>
-          </div>
-        </div>
-        <div class="modal-footer border-top-0 pt-0 pb-4 px-3">
-          <button type="button" class="btn btn-light text-danger btn-sm me-auto" id="deleteBtn" style="display:none" onclick="deletePatient()">
-            <i class="bi bi-trash me-1"></i>Delete
-          </button>
-          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary btn-sm px-4" onclick="savePatient()">Save Changes</button>
-        </div>
-      </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    let allPatients = [];
-    let filteredPatients = [];
-    let currentView = 'upcoming';
+    // --- STATE ---
+    let ctiData = [];
+    let huvData = [];
+    const PIN = "2232";
 
+    // --- INIT ---
     document.addEventListener('DOMContentLoaded', () => {
-        // Set date in header
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', options);
-
-        // Allow Enter key for PIN
-        document.getElementById('pinInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') validatePin();
-        });
-        
-        // Setup Filter Listeners
-        document.getElementById('filterRange').addEventListener('change', filterPatients);
-        document.getElementById('filterYear').addEventListener('change', filterPatients);
-        
-        // Focus PIN on load
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
         document.getElementById('pinInput').focus();
+        
+        // Pin Entry Listener
+        document.getElementById('pinInput').addEventListener('keyup', (e) => {
+            if(e.target.value === PIN) unlockApp();
+            if(e.target.value.length === 4 && e.target.value !== PIN) {
+                document.getElementById('pinError').style.display = 'block';
+                e.target.value = '';
+            }
+        });
     });
 
-    /* --- Security Logic --- */
-    function validatePin() {
-        const pin = document.getElementById('pinInput').value;
-        const errorMsg = document.getElementById('pinError');
-        const card = document.querySelector('.pin-card');
-
-        if (pin === '2232') {
-            // Success Animation
-            document.getElementById('authSection').style.display = 'none';
-            const dash = document.getElementById('dashboardSection');
-            dash.style.display = 'block';
-            dash.classList.add('fade-in');
-            
-            // Load Data only AFTER auth
-            loadData();
-        } else {
-            // Error Animation
-            errorMsg.style.display = 'block';
-            errorMsg.style.opacity = '1';
-            card.classList.remove('shake');
-            void card.offsetWidth; // trigger reflow
-            card.classList.add('shake');
-            document.getElementById('pinInput').value = '';
-        }
+    function unlockApp() {
+        document.getElementById('authOverlay').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        loadAllData();
     }
 
-    /* --- Data Logic (Unchanged but connected) --- */
-    function loadData() {
-      // Assuming Google Apps Script backend
-      if(typeof google !== 'undefined' && google.script) {
-          google.script.run.withSuccessHandler(data => {
-            allPatients = data;
-            loadYears();
-            filterPatients();
-          }).withFailureHandler(err => {
-            console.error(err);
-            showEmpty();
-          }).getPatientData();
-      } else {
-          // Dev Mode / Fallback for testing without GAS
-          console.log("Not in GAS environment.");
-          showEmpty();
-      }
+    // --- DATA LOADING ---
+    function loadAllData() {
+        if(typeof google === 'undefined') { console.warn('Not in GAS environment'); return; }
+
+        // Fetch CTI Data
+        google.script.run.withSuccessHandler(data => {
+            ctiData = data;
+            renderCtiTable(data);
+            updateStats();
+        }).getPatientData();
+
+        // Fetch HUV Data
+        google.script.run.withSuccessHandler(data => {
+            huvData = data;
+            renderHuvTable(data);
+            updateStats();
+        }).getHUVData();
     }
 
-    function loadYears() {
-      google.script.run.withSuccessHandler(years => {
-        const sel = document.getElementById('filterYear');
-        years.forEach(y => {
-          const opt = document.createElement('option');
-          opt.value = y;
-          opt.textContent = y;
-          sel.appendChild(opt);
-        });
-      }).getAvailableYears();
-    }
-
-    function filterPatients() {
-      const range = document.getElementById('filterRange').value;
-      const year = document.getElementById('filterYear').value;
-      const search = document.getElementById('searchInput').value.toLowerCase();
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      filteredPatients = allPatients.filter(p => {
-        if (!p.admissionDateRaw) return false;
-        const admDate = new Date(p.admissionDateRaw);
+    // --- RENDERERS ---
+    
+    // 1. CTI Table
+    function renderCtiTable(data) {
+        const tbody = document.getElementById('ctiTableBody');
+        if(!data.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center p-3">No patients found</td></tr>'; return; }
         
-        if (range !== 'all') {
-          let startDate;
-          if (range === 'ytd') startDate = new Date(now.getFullYear(), 0, 1);
-          else if (range === 'mtd') startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          else startDate = new Date(today.getTime() - parseInt(range) * 86400000);
-          if (admDate < startDate) return false;
+        tbody.innerHTML = data.map(p => {
+            const status = getRecertStatus(p.recertStartDate);
+            return `
+            <tr>
+                <td class="fw-bold">${p.name}</td>
+                <td>${p.admissionDate}</td>
+                <td><span class="badge bg-light text-dark border">${p.currentPeriod || 'N/A'}</span></td>
+                <td>${p.recertPeriod || '-'}</td>
+                <td>${status}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    function getRecertStatus(dateStr) {
+        if(!dateStr) return '';
+        const due = new Date(dateStr);
+        const today = new Date();
+        const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+        
+        if(diff < 0) return `<span class="badge-soft bg-red-soft">Overdue (${Math.abs(diff)}d)</span>`;
+        if(diff <= 30) return `<span class="badge-soft bg-yellow-soft">Due in ${diff} days</span>`;
+        return `<span class="badge-soft bg-green-soft">Active</span>`;
+    }
+
+    // 2. HUV Table
+    function renderHuvTable(data) {
+        const tbody = document.getElementById('huvTableBody');
+        if(!data.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center p-3">No HUV data found</td></tr>'; return; }
+
+        tbody.innerHTML = data.map((p, index) => {
+            const h1 = calculateHuvStatus(p.socDate, 6, 15, p.huv1Done);
+            const h2 = calculateHuvStatus(p.socDate, 16, 30, p.huv2Done);
+            
+            return `
+            <tr>
+                <td class="fw-bold">${p.name}</td>
+                <td>${new Date(p.socDate).toLocaleDateString()}</td>
+                <td>
+                    <div class="small text-muted">${h1.range}</div>
+                    ${h1.badge}
+                </td>
+                <td class="text-center">
+                   <input type="checkbox" class="huv-check" 
+                          ${p.huv1Done ? 'checked' : ''} 
+                          onchange="toggleHuv(${p.row}, 1, this.checked)">
+                </td>
+                <td>
+                    <div class="small text-muted">${h2.range}</div>
+                    ${h2.badge}
+                </td>
+                <td class="text-center">
+                   <input type="checkbox" class="huv-check" 
+                          ${p.huv2Done ? 'checked' : ''} 
+                          onchange="toggleHuv(${p.row}, 2, this.checked)">
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function calculateHuvStatus(socDate, startDay, endDay, isDone) {
+        if(isDone) return { range: 'Completed', badge: '<span class="badge-soft bg-green-soft">Done</span>' };
+        
+        const start = new Date(socDate); start.setDate(start.getDate() + startDay);
+        const end = new Date(socDate); end.setDate(end.getDate() + endDay);
+        const today = new Date();
+
+        const rangeStr = `${start.getMonth()+1}/${start.getDate()} - ${end.getMonth()+1}/${end.getDate()}`;
+
+        if(today > end) return { range: rangeStr, badge: '<span class="badge-soft bg-red-soft">Overdue</span>' };
+        if(today >= start && today <= end) return { range: rangeStr, badge: '<span class="badge-soft bg-yellow-soft">Action Needed</span>' };
+        return { range: rangeStr, badge: '<span class="badge-soft bg-neutral-soft">Upcoming</span>' };
+    }
+
+    // --- ACTIONS ---
+    function switchView(viewName) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById(`view-${viewName}`).classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        event.currentTarget.classList.add('active'); // highlight nav
+
+        const titles = { 'dashboard': 'Overview', 'cti': 'Certifications', 'huv': 'HOPE Visits' };
+        document.getElementById('pageTitle').textContent = titles[viewName];
+    }
+
+    function filterCti(mode) {
+        const btnAll = document.getElementById('btnCtiAll');
+        const btnUp = document.getElementById('btnCtiUpcoming');
+        
+        if(mode === 'all') {
+             btnAll.classList.add('active'); btnUp.classList.remove('active');
+             renderCtiTable(ctiData);
+        } else {
+             btnAll.classList.remove('active'); btnUp.classList.add('active');
+             const filtered = ctiData.filter(p => {
+                 if(!p.recertStartDate) return false;
+                 const diff = (new Date(p.recertStartDate) - new Date()) / 86400000;
+                 return diff >= 0 && diff <= 30;
+             });
+             renderCtiTable(filtered);
         }
-
-        if (year !== 'all' && admDate.getFullYear() !== parseInt(year)) return false;
-        if (search && !p.name.toLowerCase().includes(search)) return false;
-        return true;
-      });
-
-      filteredPatients.sort((a, b) => {
-        if (!a.recertStartDate) return 1;
-        if (!b.recertStartDate) return -1;
-        return a.recertStartDate - b.recertStartDate;
-      });
-
-      const displayPatients = filteredPatients.filter(p => {
-        if (!p.recertStartDate) return currentView === 'upcoming';
-        const recertDate = new Date(p.recertStartDate);
-        return currentView === 'upcoming' ? recertDate >= today : recertDate < today;
-      });
-
-      updateScoreCards();
-      renderTable(displayPatients);
     }
 
-    function updateScoreCards() {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
-      document.getElementById('totalPatients').textContent = filteredPatients.length;
-      
-      const upcoming = filteredPatients.filter(p => {
-        if (!p.recertStartDate) return false;
-        const recertDate = new Date(p.recertStartDate);
-        const daysUntil = (recertDate - today) / 86400000;
-        return daysUntil >= 0 && daysUntil <= 30;
-      }).length;
-      
-      document.getElementById('upcomingRecerts').textContent = upcoming;
+    function toggleHuv(row, huvNum, isChecked) {
+        google.script.run.updateHUVStatus(row, huvNum, isChecked);
     }
-
-    function renderTable(patients) {
-      document.getElementById('loadingState').style.display = 'none';
-      const tbody = document.getElementById('patientTableBody');
-      const container = document.getElementById('tableContainer');
-      const empty = document.getElementById('emptyState');
-
-      if (patients.length === 0) {
-        container.style.display = 'none';
-        empty.style.display = 'block';
-        return;
-      }
-
-      container.style.display = 'block';
-      empty.style.display = 'none';
-
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      tbody.innerHTML = patients.map(p => {
-        let status = '';
-        if (p.recertStartDate) {
-          const recertDate = new Date(p.recertStartDate);
-          const daysUntil = Math.ceil((recertDate - today) / 86400000);
-          if (daysUntil < 0) {
-            status = `<span class="badge-soft badge-pastdue">${Math.abs(daysUntil)} days overdue</span>`;
-          } else if (daysUntil <= 30) {
-            status = `<span class="badge-soft badge-upcoming">${daysUntil} days left</span>`;
-          } else {
-            status = `<span class="badge-soft badge-neutral">${daysUntil} days</span>`;
-          }
+    
+    function updateStats() {
+        if(ctiData) document.getElementById('statTotal').textContent = ctiData.length;
+        if(huvData) {
+            // Count actionable HUVs
+             let actionCount = 0;
+             huvData.forEach(p => {
+                 const h1 = calculateHuvStatus(p.socDate, 6, 15, p.huv1Done);
+                 const h2 = calculateHuvStatus(p.socDate, 16, 30, p.huv2Done);
+                 if(h1.badge.includes('Action') || h2.badge.includes('Action')) actionCount++;
+             });
+             document.getElementById('statHuv').textContent = actionCount;
         }
-        return `<tr>
-          <td class="fw-semibold text-dark">${escapeHtml(p.name)}</td>
-          <td class="text-muted">${p.admissionDate}</td>
-          <td class="text-muted">${escapeHtml(p.currentPeriod)}</td>
-          <td class="text-muted">${escapeHtml(p.recertPeriod)}</td>
-          <td>${status}</td>
-          <td>
-            <button class="btn btn-sm btn-light text-primary border-0" onclick="openEditModal(${p.row},'${escapeJs(p.name)}','${p.admissionDateRaw}')">
-              <i class="bi bi-pencil-square"></i>
-            </button>
-          </td>
-        </tr>`;
-      }).join('');
     }
 
-    function setView(view) {
-      currentView = view;
-      document.getElementById('btnUpcoming').classList.toggle('active', view === 'upcoming');
-      document.getElementById('btnPastDue').classList.toggle('active', view === 'pastdue');
-      filterPatients();
-    }
-
-    /* --- Modal & CRUD Operations --- */
-    function openAddModal() {
-      document.getElementById('modalTitle').textContent = 'Add Patient';
-      document.getElementById('editRow').value = '';
-      document.getElementById('patientName').value = '';
-      document.getElementById('admissionDate').value = '';
-      document.getElementById('deleteBtn').style.display = 'none';
-    }
-
-    function openEditModal(row, name, dateRaw) {
-      document.getElementById('modalTitle').textContent = 'Edit Patient';
-      document.getElementById('editRow').value = row;
-      document.getElementById('patientName').value = name;
-      if (dateRaw) {
-        const d = new Date(parseInt(dateRaw));
-        document.getElementById('admissionDate').value = d.toISOString().split('T')[0];
-      }
-      document.getElementById('deleteBtn').style.display = 'block';
-      new bootstrap.Modal(document.getElementById('patientModal')).show();
-    }
-
+    // CRUD Placeholders
+    function openAddModal() { new bootstrap.Modal(document.getElementById('patientModal')).show(); }
     function savePatient() {
-      const name = document.getElementById('patientName').value.trim();
-      const date = document.getElementById('admissionDate').value;
-      const row = document.getElementById('editRow').value;
-
-      if (!name || !date) {
-        alert('Please fill in all fields');
-        return;
-      }
-
-      const callback = () => {
-        bootstrap.Modal.getInstance(document.getElementById('patientModal')).hide();
-        loadData();
-      };
-
-      if (row) {
-        google.script.run.withSuccessHandler(callback).updatePatient(parseInt(row), name, date);
-      } else {
-        google.script.run.withSuccessHandler(callback).addPatient(name, date);
-      }
-    }
-
-    function deletePatient() {
-      if (!confirm('Are you sure you want to remove this patient?')) return;
-      const row = document.getElementById('editRow').value;
-      google.script.run.withSuccessHandler(() => {
-        bootstrap.Modal.getInstance(document.getElementById('patientModal')).hide();
-        loadData();
-      }).deletePatient(parseInt(row));
-    }
-
-    function showEmpty() {
-      document.getElementById('loadingState').style.display = 'none';
-      document.getElementById('tableContainer').style.display = 'none';
-      document.getElementById('emptyState').style.display = 'block';
-    }
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    function escapeJs(str) {
-      if (!str) return '';
-      return str.toString().replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+        const name = document.getElementById('newPatientName').value;
+        const date = document.getElementById('newPatientDate').value;
+        google.script.run.withSuccessHandler(() => {
+            location.reload(); 
+        }).addPatient(name, date);
     }
   </script>
 </body>
