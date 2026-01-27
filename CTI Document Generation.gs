@@ -9,7 +9,8 @@ const CONFIG = {
   EMAIL_LIST: [
     'kobet@parrishhealthsystems.org',
     'reneesha@parrishhealthsystems.org',
-    'tajuanna@parrishhealthsystems.org'
+    'tajuanna@parrishhealthsystems.org',
+    'nassumpta@hotmail.com'
   ],
   DOCTOR_NAME: 'Dr. Thomas Smallwood',
   DOC_TEMPLATES: {
@@ -1044,4 +1045,151 @@ Delete test documents from Drive when done.
   });
   
   Logger.log(`Test email sent to: ${CONFIG.EMAIL_LIST.join(', ')} with ${attachments.length} PDF attachments`);
+}
+
+// ============ RANGE / MISSED CERTIFICATION CHECK ============
+
+/**
+ * RUN THIS FUNCTION MANUALLY
+ * Configures the date range and sends the report.
+ * Update the dates inside the quotes before running.
+ */
+function findMissedCertifications() {
+  // CONFIGURATION: Set your date range here (YYYY-MM-DD)
+  const START_DATE = '2026-01-08'; // from date (last set 1/27/28)
+  const END_DATE = '2026-01-27'; // usually today or yesterday
+  
+  // Optional: Override the email list just for this run (e.g., if sending only to specific nurses)
+  // Set to null to use the default CONFIG.EMAIL_LIST
+  const RECIPIENT_OVERRIDE = null; 
+  // const RECIPIENT_OVERRIDE = 'nurse1@parrishhealthsystems.org,nurse2@parrishhealthsystems.org';
+
+  Logger.log(`Starting check for range: ${START_DATE} to ${END_DATE}`);
+  processCertificationsByRange(START_DATE, END_DATE, RECIPIENT_OVERRIDE);
+}
+
+/**
+ * Core logic to find and process certifications within a date range
+ */
+function processCertificationsByRange(startDateStr, endDateStr, recipientEmail) {
+  const sheet = SpreadsheetApp.openById(CONFIG.SHEET_ID).getActiveSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  // Parse range dates
+  const start = normalizeDate(new Date(startDateStr));
+  const end = normalizeDate(new Date(endDateStr));
+  
+  if (!start || !end) {
+    Logger.log('Error: Invalid date format. Please use YYYY-MM-DD');
+    return;
+  }
+
+  const foundPatients = [];
+
+  // Iterate through data (Skip header)
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const notifyDate = parseDate(row[CONFIG.COLUMNS.NOTIFY_DATE]);
+    
+    if (!notifyDate) continue;
+    
+    const normalizedNotify = normalizeDate(notifyDate);
+    
+    // Check if notify date falls within the range (Inclusive)
+    if (normalizedNotify >= start && normalizedNotify <= end) {
+      const patientData = extractPatientData(row, i + 1);
+      if (patientData) {
+        foundPatients.push(patientData);
+      }
+    }
+  }
+  
+  if (foundPatients.length === 0) {
+    Logger.log('No certifications found in this date range.');
+    return;
+  }
+  
+  Logger.log(`Found ${foundPatients.length} patient(s). Preparing documents...`);
+  
+  // Sort by notify date (oldest to newest)
+  foundPatients.sort((a, b) => a.notifyDate - b.notifyDate);
+
+  // Process documents
+  const allPreparedDocs = [];
+  for (const patient of foundPatients) {
+    const preparedDocs = prepareDocuments(patient);
+    allPreparedDocs.push({
+      patient: patient,
+      documents: preparedDocs
+    });
+  }
+  
+  // Send the Range Report Email
+  sendRangeReportEmail(allPreparedDocs, start, end, recipientEmail);
+}
+
+/**
+ * Send the specific email for the Date Range Report
+ */
+function sendRangeReportEmail(allPreparedDocs, startDate, endDate, recipientEmail) {
+  const formattedStart = formatDate(startDate);
+  const formattedEnd = formatDate(endDate);
+  
+  const subject = `Missed/Range Certification Report: ${formattedStart} - ${formattedEnd}`;
+  const recipients = recipientEmail || CONFIG.EMAIL_LIST.join(',');
+
+  let patientSections = '';
+  const allAttachments = [];
+
+  for (const item of allPreparedDocs) {
+    const patient = item.patient;
+    const docs = item.documents;
+    
+    // Collect attachments
+    docs.forEach(d => { if (d.pdfBlob) allAttachments.push(d.pdfBlob); });
+
+    const docLinks = docs.map(d => 
+      `<li><strong>${d.name}</strong>: <a href="${d.url}">Google Doc</a> | <em>PDF attached</em></li>`
+    ).join('');
+
+    patientSections += `
+      <div style="background:#fff;border:1px solid #ddd;padding:15px;margin:15px 0;border-radius:4px;">
+        <h3 style="margin:0 0 5px 0;color:#2c5282;">${patient.patientName}</h3>
+        <p style="margin:0;font-size:13px;color:#666;">
+          <strong>Notify Date:</strong> ${formatDate(patient.notifyDate)} | 
+          <strong>MR:</strong> ${patient.mrNumber}
+        </p>
+        <p style="margin:5px 0;font-size:13px;"><strong>Period:</strong> ${patient.certPeriod.name}</p>
+        <ul style="margin:5px 0;padding-left:20px;font-size:13px;">${docLinks}</ul>
+      </div>
+    `;
+  }
+
+  const htmlBody = `
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:700px;margin:0 auto;">
+      <div style="background:#742a2a;color:white;padding:20px;text-align:center;">
+        <h2 style="margin:0;">Certification Review Report</h2>
+        <p style="margin:5px 0 0 0;">Range: ${formattedStart} to ${formattedEnd}</p>
+      </div>
+      
+      <div style="padding:20px;background:#f9f9f9;">
+        <p><strong>Total Patients Found:</strong> ${allPreparedDocs.length}</p>
+        <p>Attached are the generated CTI documents for the requested period.</p>
+        ${patientSections}
+      </div>
+    </body>
+    </html>
+  `;
+
+  MailApp.sendEmail({
+    to: recipients,
+    subject: subject,
+    htmlBody: htmlBody,
+    body: `Certification Report (${formattedStart} - ${formattedEnd}). Found ${allPreparedDocs.length} patients. Documents attached.`,
+    attachments: allAttachments
+  });
+
+  Logger.log(`Range report sent to ${recipients}`);
 }
